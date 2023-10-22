@@ -1,0 +1,25 @@
+{
+  "name": "@nutgaard/sanity-migrate",
+  "module": "src/index.ts",
+  "type": "module",
+  "scripts": {
+    "check": "tsc",
+    "prettier": "prettier src --write",
+    "commit": "git-cz"
+  },
+  "devDependencies": {
+    "@sanity/client": "^6.7.0",
+    "@types/node": "^20.8.7",
+    "bun-types": "latest",
+    "commitizen": "^4.3.0",
+    "prettier": "^3.0.3"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "config": {
+    "commitizen": {
+      "path": "node_modules/cz-conventional-changelog"
+    }
+  }
+}
