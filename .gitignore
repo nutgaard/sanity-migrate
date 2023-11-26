@@ -178,3 +178,5 @@ dist
 *.tsbuildinfo
 
 lib/
+
+*.iml
