@@ -1,45 +1,46 @@
-import { Command } from './Command';
-import { bold, checksumFile, cyan, findFiles, importAll, italic, log, red } from '../utils';
 import path from 'node:path';
-import { MigrationFile, Migrator } from '../Migrator.ts';
-import { getSanityClientFromArgs } from './utils';
+import { Program } from 'program/index';
+import { ActionParameters, Logger } from 'types';
+import { bold, italic, red } from '../utils/cli-utils.js';
+import { getSanityClient, SanityClientConfig } from './utils.js';
+import { checksumFile, findFiles, importAll } from '../utils/fs-utils.js';
+import { MigrationFile, Migrator } from '../Migrator.js';
 
-export const help = `
-${cyan('Run migration')}
-Usage: sanity-migrate migrate project_id dataset api_version [options]
---dry-run           Runs migrations without commiting transactions
---src=migrations    Source folder for migrations
---help              Prints the help for the command
-
-${bold('NB!!')} ${italic('SANITY_TOKEN')} must be provided as environment variable.
-`;
-
-export class MigrateCommand extends Command {
-    cmd() {
-        return 'migrate';
+export class Migrate {
+    static register(program: Program) {
+        program
+            .command('migrate', 'Run sanity-migrate migrations')
+            .argument('<projectId>', 'The sanity projectID')
+            .argument('<dataset>', 'The sanity dataset name')
+            .argument('<apiVersion>', 'The sanity apiversion to use')
+            .option('--dry-run', 'Runs migrations without commiting transaction')
+            .option('--src <folder>', 'Source folder for migrations', {
+                default: 'migrations',
+                validator: (value) => {
+                    if (typeof value === 'string') {
+                        return Promise.resolve(value);
+                    } else {
+                        return Promise.reject('Must pass a folder to --src');
+                    }
+                },
+            })
+            .help(`${bold('NB!!')} ${italic('SANITY_TOKEN')} must be provided as environment variable.`)
+            .action(Migrate.run);
     }
-    help() {
-        return help;
-    }
 
-    async run(...args: string[]): Promise<void> {
-        const client = getSanityClientFromArgs(args, help);
-        if (client === null) return;
+    static async run({ logger, args, options }: ActionParameters) {
+        const client = getSanityClient(logger, args as unknown as SanityClientConfig);
 
-        const dryrun = args.includes('--dry-run') ?? false;
-        const src =
-            args
-                .filter((it) => it.startsWith('--src='))
-                .map((it) => it.split('=')[1])
-                .at(0) ?? 'migrations';
+        const dryrun = Boolean(options['dryRun']);
+        const sourceFolder = `${options['src']}`;
 
-        const migrationSource = path.join(process.env.PWD ?? '', src);
+        const migrationSource = path.join(process.env.PWD ?? '', sourceFolder);
         const migrationFiles = (await findFiles(migrationSource)).sort();
-        log(`Found ${migrationFiles.length} migrations at ${migrationSource}`);
+        logger.info(`Found ${migrationFiles.length} migrations at ${migrationSource}`);
 
-        const migrations = await loadMigrationFiles(migrationFiles);
+        const migrations = await loadMigrationFiles(migrationFiles, logger);
         if (!migrations.every(Boolean)) {
-            log(red('KO'), 'Found migrations with errors. Stopping...');
+            logger.error(red('KO'), 'Found migrations with errors. Stopping...');
             process.exit(1);
         }
 
@@ -47,11 +48,11 @@ export class MigrateCommand extends Command {
             dryrun,
         });
 
-        await migrator.run();
+        await migrator.run(logger);
     }
 }
 
-async function loadMigrationFiles(files: string[]): Promise<Array<MigrationFile | undefined>> {
+async function loadMigrationFiles(files: string[], logger: Logger): Promise<Array<MigrationFile | undefined>> {
     const out: Array<MigrationFile | undefined> = [];
     const migrationModules = await importAll<any>(files);
 
@@ -67,7 +68,7 @@ async function loadMigrationFiles(files: string[]): Promise<Array<MigrationFile 
                 hash,
             });
         } else {
-            log(
+            logger.error(
                 red('KO'),
                 `Error in ${path.basename(file)}. Migration module must return a ${italic(
                     'Migration',

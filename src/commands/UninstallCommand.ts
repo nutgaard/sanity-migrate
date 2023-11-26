@@ -1,32 +1,22 @@
-import { Command } from './Command';
-import { bold, cyan, italic } from '../utils';
-import { getSanityClientFromArgs } from './utils';
-import { MigrationStatusHandler } from '../MigrationStatusHandler';
+import { ActionParameters } from 'types';
+import { Program } from 'program/index';
+import { bold, italic } from '../utils/cli-utils.js';
+import { getSanityClient, SanityClientConfig } from './utils.js';
+import { MigrationStatusHandler } from '../MigrationStatusHandler.js';
 
-const help = `
-${cyan('Remove migration document')}
-Usage: sanity-migrate uninstall project_id dataset api_version
-
-${bold('NB!!')} ${italic('SANITY_TOKEN')} must be provided as environment variable.
-`;
-
-export class UninstallCommand extends Command {
-    constructor() {
-        super();
+export class Uninstall {
+    static register(program: Program) {
+        program
+            .command('uninstall', 'Uninstall sanity-migrate')
+            .argument('<projectId>', 'The sanity projectID')
+            .argument('<dataset>', 'The sanity dataset name')
+            .argument('<apiVersion>', 'The sanity apiversion to use')
+            .help(`${bold('NB!!')} ${italic('SANITY_TOKEN')} must be provided as environment variable.`)
+            .action(Uninstall.run);
     }
 
-    cmd() {
-        return 'uninstall';
-    }
-
-    help() {
-        return help;
-    }
-
-    async run(...args: string[]): Promise<void> {
-        const client = getSanityClientFromArgs(args, help);
-        if (client === null) return;
-
+    static async run({ logger, args }: ActionParameters) {
+        const client = getSanityClient(logger, args as unknown as SanityClientConfig);
         await MigrationStatusHandler.remove(client);
     }
 }

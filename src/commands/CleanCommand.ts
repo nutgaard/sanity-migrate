@@ -1,32 +1,22 @@
-import { Command } from './Command';
-import { bold, cyan, italic } from '../utils';
-import { getSanityClientFromArgs } from './utils';
-import { MigrationStatusHandler } from '../MigrationStatusHandler';
+import { ActionParameters } from 'types';
+import { Program } from 'program/index';
+import { bold, italic } from '../utils/cli-utils.js';
+import { getSanityClient, SanityClientConfig } from './utils.js';
+import { MigrationStatusHandler } from '../MigrationStatusHandler.js';
 
-const help = `
-${cyan('Clean migration document')}
-Usage: sanity-migrate clean project_id dataset api_version
-
-${bold('NB!!')} ${italic('SANITY_TOKEN')} must be provided as environment variable.
-`;
-
-export class CleanCommand extends Command {
-    constructor() {
-        super();
+export class Clean {
+    static register(program: Program) {
+        program
+            .command('clean', 'Clean sanity-migrate document')
+            .argument('<projectId>', 'The sanity projectID')
+            .argument('<dataset>', 'The sanity dataset name')
+            .argument('<apiVersion>', 'The sanity apiversion to use')
+            .help(`${bold('NB!!')} ${italic('SANITY_TOKEN')} must be provided as environment variable.`)
+            .action(Clean.run);
     }
 
-    cmd() {
-        return 'clean';
-    }
-
-    help() {
-        return help;
-    }
-
-    async run(...args: string[]): Promise<void> {
-        const client = getSanityClientFromArgs(args, help);
-        if (client === null) return;
-
+    static async run({ logger, args }: ActionParameters) {
+        const client = getSanityClient(logger, args as unknown as SanityClientConfig);
         await MigrationStatusHandler.clean(client);
     }
 }

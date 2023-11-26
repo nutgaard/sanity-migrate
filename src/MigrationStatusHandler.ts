@@ -1,6 +1,7 @@
 import { SanityClient, SanityDocument } from '@sanity/client';
-import { log, requireNotNull } from './utils';
-import { MigrationFile } from './Migrator.ts';
+import { Logger } from 'types';
+import { requireNotNull } from './utils/type-utils.js';
+import { MigrationFile } from './Migrator.js';
 
 export const SANITY_DOC_TYPE = 'sanity-migrate.migration';
 export const SANITY_DOC_ID = 'sanity-migrate.migration';
@@ -16,10 +17,10 @@ export interface MigrationDocument {
 }
 
 export class MigrationStatusHandler {
-    static async initialize(client: SanityClient) {
+    static async initialize(client: SanityClient, logger: Logger) {
         const existingDoc = await client.getDocument<MigrationDocument>(SANITY_DOC_ID);
         if (existingDoc) {
-            log(`Migration document already exists`);
+            logger.info(`Migration document already exists`);
             return;
         }
 
@@ -29,7 +30,7 @@ export class MigrationStatusHandler {
             migrations: [],
         });
 
-        log(`Migration document created`);
+        logger.info(`Migration document created`);
     }
 
     static async remove(client: SanityClient) {

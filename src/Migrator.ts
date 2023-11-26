@@ -1,6 +1,7 @@
 import { SanityClient, PatchOperations } from '@sanity/client';
-import { cyan, green, log, red } from './utils/cli-utils.ts';
-import { MigrationStatusHandler, SanityMigration } from './MigrationStatusHandler.ts';
+import { Logger } from 'types';
+import { MigrationStatusHandler, SanityMigration } from './MigrationStatusHandler.js';
+import { cyan, green, red } from './utils/cli-utils.js';
 
 export interface MigrationFile {
     filename: string;
@@ -43,9 +44,9 @@ export class Migrator {
         return undefined;
     }
 
-    async run() {
-        const migrationToRun = await this.checkPreviousMigrations();
-        log(cyan('INFO'), `Found ${migrationToRun.length} migrations to run.`);
+    async run(logger: Logger) {
+        const migrationToRun = await this.checkPreviousMigrations(logger);
+        logger.info(cyan('INFO'), `Found ${migrationToRun.length} migrations to run.`);
 
         for (const migration of migrationToRun) {
             const { name, query, buildPatch } = migration.module;
@@ -54,10 +55,10 @@ export class Migrator {
             let patches: PatchedDocument[] = [];
             let batchCount = 1;
             do {
-                log(cyan('INFO'), `Starting migration "${name}"`);
+                logger.info(cyan('INFO'), `Starting migration "${name}"`);
                 try {
                     patches = (await this.client.fetch(query)).map(buildPatch);
-                    log(
+                    logger.info(
                         cyan('INFO'),
                         `Migration batch (${batchCount++}): ${patches.length} documents\n`,
                         patches.map((patch) => `  ${patch.id} => ${JSON.stringify(patch.patch)}`).join('\n'),
@@ -69,7 +70,7 @@ export class Migrator {
                     }
                     await transaction.commit({ dryRun: this.config.dryrun });
                 } catch (e) {
-                    log(red('KO'), `Migration ${name} failed.`);
+                    logger.error(red('KO'), `Migration ${name} failed.`);
                     await MigrationStatusHandler.endMigration(this.client, migration, false);
                     console.log(e);
                     process.exit(1);
@@ -77,9 +78,9 @@ export class Migrator {
             } while (patches.length > 0 && !this.config.dryrun);
             await MigrationStatusHandler.endMigration(this.client, migration, true);
 
-            log(green('OK'), `Migration "${name}" complete`);
+            logger.info(green('OK'), `Migration "${name}" complete`);
             if (this.config.dryrun) {
-                log(
+                logger.info(
                     cyan('INFO'),
                     `This was a dryrun, which means only one iteration of document-fetching was performed.`,
                 );
@@ -87,17 +88,20 @@ export class Migrator {
         }
     }
 
-    private async checkPreviousMigrations(): Promise<MigrationFile[]> {
-        log(cyan('INFO'), `Fetching previous migration status.`);
+    private async checkPreviousMigrations(logger: Logger): Promise<MigrationFile[]> {
+        logger.info(cyan('INFO'), `Fetching previous migration status.`);
         const migrationStatus = await MigrationStatusHandler.getStatusOrNull(this.client);
         if (!migrationStatus) {
-            log(red('KO'), `No migration status found, run sanity-migrate init before trying to migrate data.`);
+            logger.error(
+                red('KO'),
+                `No migration status found, run sanity-migrate init before trying to migrate data.`,
+            );
             process.exit(1);
         }
         const previousMigrations = migrationStatus.migrations;
 
         if (previousMigrations.some((it) => it.status !== 'ok')) {
-            log(
+            logger.error(
                 red('KO'),
                 `Previous migration not completed successfully. Wait if another migration is currently running, or fix it manually.`,
             );
@@ -109,14 +113,17 @@ export class Migrator {
 
             const currentFileMatch = this.migrations.find((it) => it.filename === file);
             if (!currentFileMatch) {
-                log(
+                logger.error(
                     red('KO'),
                     `Could not find previously run migration; ${file}. Ensure filenames do not change after applying the migration.`,
                 );
                 process.exit(1);
             }
             if (currentFileMatch.hash !== hash) {
-                log(red('KO'), `Hash mismatch for; ${file}. Migration files cannot change after being applied.`);
+                logger.error(
+                    red('KO'),
+                    `Hash mismatch for; ${file}. Migration files cannot change after being applied.`,
+                );
                 process.exit(1);
             }
         }

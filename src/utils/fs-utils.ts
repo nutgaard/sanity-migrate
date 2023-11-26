@@ -3,8 +3,8 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 
 export async function findFiles(directory: string): Promise<string[]> {
-    const directoryExists = await fs.exists(directory);
-    if (!directoryExists) return [];
+    const directoryExists = await fs.stat(directory);
+    if (!directoryExists.isDirectory()) return [];
 
     const entries = await fs.readdir(directory);
     const files = [];

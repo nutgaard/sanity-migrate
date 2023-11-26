@@ -1,27 +1,18 @@
-import {
-    CleanCommand,
-    Command,
-    CommandManager,
-    HelpCommand,
-    InstallCommand,
-    MigrateCommand,
-    StatusCommand,
-    UninstallCommand,
-} from './commands';
+import caporal from '@caporal/core';
+import { Install } from './commands/InstallCommand.js';
+import { Uninstall } from './commands/UninstallCommand.js';
+import { Migrate } from './commands/MigrateCommand.js';
+import { Clean } from './commands/CleanCommand.js';
+import { Status } from './commands/StatusCommand.js';
 
-const commandManager = new CommandManager();
-commandManager.register(new InstallCommand());
-commandManager.register(new StatusCommand());
-commandManager.register(new MigrateCommand());
-commandManager.register(new CleanCommand());
-commandManager.register(new UninstallCommand());
-commandManager.register(new HelpCommand(commandManager));
+const { program } = caporal;
 
-const [, , commandArg, ...rest] = process.argv;
+program.name('sanity-migrate').bin('sanity-migrate').description('Utility for managing migration in a sanity dataset');
 
-let command: Command | undefined = commandManager.get(commandArg);
-if (command === undefined) {
-    command = commandManager.get('help')!;
-}
+Install.register(program);
+Uninstall.register(program);
+Migrate.register(program);
+Clean.register(program);
+Status.register(program);
 
-await command.run(...rest);
+program.run();

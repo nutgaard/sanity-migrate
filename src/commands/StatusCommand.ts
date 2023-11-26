@@ -1,34 +1,25 @@
-import { Command } from './Command';
-import { bold, cyan, green, italic, log, red } from '../utils';
-import { getSanityClientFromArgs } from './utils';
-import { MigrationStatusHandler, SanityMigration } from '../MigrationStatusHandler';
+import { ActionParameters } from 'types';
+import { Program } from 'program/index';
+import { bold, cyan, green, italic, red } from '../utils/cli-utils.js';
+import { getSanityClient, SanityClientConfig } from './utils.js';
+import { MigrationStatusHandler, SanityMigration } from '../MigrationStatusHandler.js';
 
-const help = `
-${cyan('Get migration status')}
-Usage: sanity-migrate status project_id dataset api_version
-
-${bold('NB!!')} ${italic('SANITY_TOKEN')} must be provided as environment variable.
-`;
-
-export class StatusCommand extends Command {
-    constructor() {
-        super();
+export class Status {
+    static register(program: Program) {
+        program
+            .command('status', 'Get migration status')
+            .argument('<projectId>', 'The sanity projectID')
+            .argument('<dataset>', 'The sanity dataset name')
+            .argument('<apiVersion>', 'The sanity apiversion to use')
+            .help(`${bold('NB!!')} ${italic('SANITY_TOKEN')} must be provided as environment variable.`)
+            .action(Status.run);
     }
 
-    cmd() {
-        return 'status';
-    }
-
-    help() {
-        return help;
-    }
-
-    async run(...args: string[]): Promise<void> {
-        const client = getSanityClientFromArgs(args, help);
-        if (client === null) return;
-
+    static async run({ logger, args }: ActionParameters) {
+        const client = getSanityClient(logger, args as unknown as SanityClientConfig);
         const status = await MigrationStatusHandler.getStatus(client);
-        log(status.migrations.map((it) => `${getStatus(it)}: ${it.file} (${it.hash.slice(0, 6)})`).join('\n'));
+
+        logger.info(status.migrations.map((it) => `${getStatus(it)}: ${it.file} (${it.hash.slice(0, 6)})`).join('\n'));
     }
 }
 

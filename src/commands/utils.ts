@@ -1,18 +1,18 @@
+import { Logger } from 'types';
 import { createClient, SanityClient } from '@sanity/client';
-import { assertNotNull, cyan, log } from '../utils';
+import { requireNotNull } from '../utils/type-utils.js';
+import { cyan } from '../utils/cli-utils.js';
 
-export function getSanityClientFromArgs(args: string[], help: string): SanityClient | null {
-    const argsWithoutOptions = args.filter((it) => !it.startsWith('--'));
-    if (argsWithoutOptions.length !== 3 || args.includes('--help')) {
-        log(help);
-        return null;
-    }
+export type SanityClientConfig = {
+    projectId: string;
+    dataset: string;
+    apiVersion: string;
+};
+export function getSanityClient(logger: Logger, config: SanityClientConfig): SanityClient {
+    const token = requireNotNull(process.env.SANITY_TOKEN, 'Missing SANITY_TOKEN environment variable');
+    const { projectId, dataset, apiVersion } = config;
 
-    const [projectId, dataset, apiVersion] = argsWithoutOptions;
-
-    const token = assertNotNull(process.env.SANITY_TOKEN, 'Missing SANITY_TOKEN environment variable');
-
-    log(`
+    logger.info(`
         ${cyan('Configuration:')}
         ProjectId:  ${projectId}
         Dataset:    ${dataset}
