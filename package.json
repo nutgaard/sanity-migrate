@@ -28,6 +28,7 @@
     "prepare": "husky install",
     "commit": "git-cz",
     "build": "rm -rf lib && tsc -p .",
+    "test": "echo 1",
     "prettier": "prettier src --write"
   },
   "peerDependencies": {
