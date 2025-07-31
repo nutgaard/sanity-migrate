@@ -1,0 +1,57 @@
+{
+  "name": "@nutgaard/sanity-migrate",
+  "version": "0.0.0-development",
+  "description": "Utility for managing migration in a sanity dataset",
+  "keywords": [
+    "sanity",
+    "migration",
+    "migrate"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nutgaard/sanity-migrate"
+  },
+  "type": "module",
+  "main": "./lib/index.js",
+  "bin": {
+    "sanity-migrate": "sanity-migrate"
+  },
+  "files": [
+    "lib"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "author": "Nicklas Utgaard",
+  "license": "MIT",
+  "scripts": {
+    "prepare": "husky install",
+    "commit": "git-cz",
+    "build": "rm -rf lib && tsc -p .",
+    "test": "echo 1",
+    "prettier": "prettier src --write"
+  },
+  "peerDependencies": {
+    "@sanity/client": "^6.7.0"
+  },
+  "dependencies": {
+    "@caporal/core": "^2.0.7"
+  },
+  "devDependencies": {
+    "@sanity/client": "^6.7.0",
+    "@types/node": "^20.10.0",
+    "commitizen": "^4.3.0",
+    "husky": "^8.0.3",
+    "lint-staged": "^15.1.0",
+    "prettier": "^3.0.3",
+    "typescript": "^5.0.0"
+  },
+  "lint-staged": {
+    "*.{ts,js,css,md}": "prettier --write"
+  },
+  "config": {
+    "commitizen": {
+      "path": "node_modules/cz-conventional-changelog"
+    }
+  }
+}
